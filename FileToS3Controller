@@ -1,0 +1,69 @@
+package com.sahi.thematic.controller;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import javax.servlet.http.HttpServletRequest;
+
+import org.apache.tomcat.util.http.fileupload.FileItemIterator;
+import org.apache.tomcat.util.http.fileupload.FileItemStream;
+import org.apache.tomcat.util.http.fileupload.FileUploadException;
+import org.apache.tomcat.util.http.fileupload.servlet.ServletFileUpload;
+import org.apache.tomcat.util.http.fileupload.util.Streams;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import com.sahi.thematic.service.*;
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.AmazonServiceException;
+
+@RestController
+@RequestMapping("/api/v1")
+public class FileToS3Controller {
+	
+	  @Autowired
+	 private FileToS3Service amazonClient;
+
+	  
+	    FileToS3Controller(FileToS3Service amazonClient) {
+	        this.amazonClient = amazonClient;
+	    }
+	   
+
+//	    @PostMapping("/uploadFile")
+//	    public String uploadFile(@RequestPart(value = "file") MultipartFile file) throws IOException, AmazonServiceException, AmazonClientException, InterruptedException {
+//	        return this.amazonClient.uploadFile(file);
+//	    }
+	    @PostMapping("/uploadFile")
+	    public String uploadToS3(HttpServletRequest request) throws AmazonServiceException, AmazonClientException, IOException, InterruptedException, FileUploadException {
+	    	ServletFileUpload upload = new ServletFileUpload();
+	    	FileItemIterator iterStream = upload.getItemIterator(request);
+	    	while (iterStream.hasNext()) {
+	    		FileItemStream item = iterStream.next();
+	    				String name = item.getName();
+	    				InputStream stream = item.openStream();
+	    				if(!item.isFormField()) {
+	    					this.amazonClient.sinkS3(stream, name);
+	    				} else {
+	    					String formFieldValue = Streams.asString(stream);
+	    				}
+	    	}
+	    	String fileName="tempFile";
+	    	
+	    	//System.out.println(request);
+			return "HI";
+	    	
+	    }
+
+//	    @DeleteMapping("/deleteFile")
+//	    public String deleteFile(@RequestPart(value = "url") String fileUrl) {
+//	        return this.amazonClient.deleteFileFromS3Bucket(fileUrl);
+//	    }
+	    @GetMapping("/getObjects")
+	    public String getObjects() {
+	    	return this.amazonClient.listFilesInS3();
+	    }
+	
+}
